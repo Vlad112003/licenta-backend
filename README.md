@@ -1,4 +1,4 @@
-icenta Backend
+Licenta Backend
 This repository contains the backend implementation for the Licenta project. It is built using Java and the Spring Boot framework, providing RESTful APIs to support the application's functionalities.
 
 Features

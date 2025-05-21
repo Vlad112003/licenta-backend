@@ -4,18 +4,20 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.http.*;
 import org.springframework.web.client.RestTemplate;
-import org.json.JSONArray;
-import org.json.JSONObject;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 public class QuestionGenerationService {
 
     private final RestTemplate restTemplate;
 
-    @Value("${openrouter.api.url}")
-    private String openRouterApiUrl;
+    @Value("${gemini.api.url}")
+    private String apiUrl;
 
-    @Value("${openrouter.api.key}")
+    @Value("${gemini.api.key}")
     private String apiKey;
 
     public QuestionGenerationService(RestTemplate restTemplate) {
@@ -23,54 +25,47 @@ public class QuestionGenerationService {
     }
 
     public String generateQuestionsFromText(String text) {
-        // Construct the JSON request body as per the cURL example
-        JSONObject requestBody = new JSONObject();
-        requestBody.put("model", "meta-llama/llama-4-maverick:free");
+        // Create request payload for Gemini API
+        Map<String, Object> payload = new HashMap<>();
 
-        // Create the messages array as per the cURL request
-        JSONArray messages = new JSONArray();
+        // Create contents structure
+        List<Map<String, Object>> contents = new ArrayList<>();
+        Map<String, Object> content = new HashMap<>();
 
-        // Add a system message to instruct the model
-        JSONObject systemMessage = new JSONObject();
-        systemMessage.put("role", "system");
-        systemMessage.put("content", "Generate questions only based on the provided text.");
-        messages.put(systemMessage);
+        // Create parts structure
+        List<Map<String, Object>> parts = new ArrayList<>();
+        Map<String, Object> part = new HashMap<>();
 
+        // Add instruction and text content
+        part.put("text", "Generate questions only based on the following text:\n\n" + text);
+        parts.add(part);
 
-        JSONObject message = new JSONObject();
-        message.put("role", "user");
+        content.put("parts", parts);
+        contents.add(content);
 
-        // Create the content array for the message
-        JSONArray content = new JSONArray();
+        payload.put("contents", contents);
 
-        // Add text message
-        JSONObject textContent = new JSONObject();
-        textContent.put("type", "text");
-        textContent.put("text", text);
-        content.put(textContent);
-
-        // Add the content to the message
-        message.put("content", content);
-
-        // Add message to messages array
-        messages.put(message);
-
-        // Attach the messages array to the request body
-        requestBody.put("messages", messages);
-
-        // Set up the headers
+        // Set up headers
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("Authorization", "Bearer " + apiKey); // Add your API key here
 
-        // Create the HttpEntity with the request body and headers
-        HttpEntity<String> entity = new HttpEntity<>(requestBody.toString(), headers);
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
 
-        // Send the POST request to OpenRouter API and get the response
-        ResponseEntity<String> response = restTemplate.exchange(
-                openRouterApiUrl, HttpMethod.POST, entity, String.class);
+        try {
+            // Gemini API doesn't use Bearer auth in header, but query param for key
+            String url = apiUrl + "/models/gemini-2.0-flash:generateContent?key=" + apiKey;
+            ResponseEntity<Map> response = restTemplate.postForEntity(url, entity, Map.class);
 
-        // Return the generated response
-        return response.getBody();
+            Map<?, ?> responseBody = response.getBody();
+            List<Map<?, ?>> candidates = (List<Map<?, ?>>) responseBody.get("candidates");
+            Map<?, ?> candidate = candidates.get(0);
+            Map<?, ?> contentMap = (Map<?, ?>) candidate.get("content");
+            List<Map<?, ?>> responseParts = (List<Map<?, ?>>) contentMap.get("parts");
+
+            return responseParts.get(0).get("text").toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "Error generating questions: " + e.getMessage();
+        }
     }
 }

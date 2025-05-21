@@ -1,0 +1,20 @@
+# SQL Server config
+spring.datasource.url=jdbc:sqlserver://localhost:1433;databaseName=elearning_db;encrypt=false;trustServerCertificate=true;
+spring.datasource.username=your_username
+spring.datasource.password=your_password
+
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.SQLServerDialect
+
+logging.level.org.springframework.security=DEBUG
+
+openrouter.api.url=https://openrouter.ai/api/v1/chat/completions
+openrouter.api.key=your_openrouter_api_key
+aim.api.url=https://api.aimlapi.com/v1
+aim.api.key=your_aim_api_key
+openai.api.url=https://api.openai.com/v1/responses
+openai.api.key=your_openai_api_key
+server.port=8080
+gemini.api.key=your_gemini_api_key
+gemini.api.url=https://generativelanguage.googleapis.com/v1beta
